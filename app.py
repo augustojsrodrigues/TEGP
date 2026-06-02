@@ -529,37 +529,7 @@ def gerar_grafico(deltas: np.ndarray, custos: np.ndarray, delta_otimo: float, cu
 # ============================================================
 # Execução principal
 # ============================================================
-left_col, right_col = st.columns([1.35, 1])
-
-with left_col:
-    st.markdown(
-        """
-        <div class="section-card">
-            <h3 style="margin-top: 0;">Rodar otimização</h3>
-            <p class="small-note">
-                Clique no botão abaixo para calcular a variável de decisão ótima,
-                isto é, o <em>tempo entre inspeções</em> que minimiza a taxa de custo do modelo.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    run_button = st.button("Executar otimização", type="primary")
-
-with right_col:
-    st.markdown(
-        f"""
-        <div class="section-card">
-            <h3 style="margin-top: 0;">Modelo em análise</h3>
-            <p class="small-note">
-                Defeito: Weibull com <em>η</em> = {eta:.2f} e <em>β</em> = {beta_shape:.2f}.<br>
-                Delay-time: exponencial com <em>λ<sub>h</sub></em> = {lh:.2f}.<br>
-                Custo do estado defeituoso: <em>c<sub>d</sub></em> = {cd_unit:.2f} por unidade de tempo.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+run_button = st.button("Executar otimização", type="primary")
 
 if run_button:
     lower_bound = 0.01
@@ -635,16 +605,3 @@ if run_button:
     fig = gerar_grafico(deltas, custos, delta_otimo, custo_otimo)
     st.pyplot(fig, use_container_width=True)
 
-else:
-    st.info("Ajuste os parâmetros na barra lateral e clique em **Executar otimização** para obter os resultados.")
-
-st.markdown(
-    """
-    <br>
-    <div class="small-note">
-        Observação: a barra de carregamento apresenta uma estimativa aproximada do avanço computacional,
-        pois o tempo de cada avaliação depende das integrais numéricas calculadas pelo modelo.
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
