@@ -606,34 +606,33 @@ if run_button:
         unsafe_allow_html=True,
     )
 
-    with st.spinner("Otimizando... Aguarde!!!"):
-        resultado = minimize_scalar(
-            lambda delta: funcao_objetivo(delta, eta, beta_shape, lh, cf, cp, ci, cd_unit),
-            bounds=(lower_bound, upper_bound),
-            method="bounded",
-            options={"xatol": XATOL, "maxiter": MAXITER},
-        )
+    resultado = minimize_scalar(
+        lambda delta: funcao_objetivo(delta, eta, beta_shape, lh, cf, cp, ci, cd_unit),
+        bounds=(lower_bound, upper_bound),
+        method="bounded",
+        options={"xatol": XATOL, "maxiter": MAXITER},
+    )
 
-        delta_otimo = float(resultado.x)
-        custo_otimo = float(resultado.fun)
+    delta_otimo = float(resultado.x)
+    custo_otimo = float(resultado.fun)
 
-        # Faixa inteligente para o gráfico: em vez de mostrar uma região muito ampla,
-        # o gráfico concentra a visualização no entorno do ótimo encontrado.
-        largura_zoom = max(delta_otimo * 0.70, eta * 0.003, 0.08)
-        margem_inferior = max(lower_bound, delta_otimo - largura_zoom)
-        margem_superior = min(upper_bound, delta_otimo + largura_zoom)
+    # Faixa inteligente para o gráfico: em vez de mostrar uma região muito ampla,
+    # o gráfico concentra a visualização no entorno do ótimo encontrado.
+    largura_zoom = max(delta_otimo * 0.70, eta * 0.003, 0.08)
+    margem_inferior = max(lower_bound, delta_otimo - largura_zoom)
+    margem_superior = min(upper_bound, delta_otimo + largura_zoom)
 
-        if margem_superior - margem_inferior < 0.12:
-            centro = delta_otimo
-            margem_inferior = max(lower_bound, centro - 0.06)
-            margem_superior = min(upper_bound, centro + 0.06)
+    if margem_superior - margem_inferior < 0.12:
+        centro = delta_otimo
+        margem_inferior = max(lower_bound, centro - 0.06)
+        margem_superior = min(upper_bound, centro + 0.06)
 
-        deltas = np.linspace(margem_inferior, margem_superior, N_PONTOS_GRAFICO)
-        custos = [
-            funcao_objetivo(float(delta), eta, beta_shape, lh, cf, cp, ci, cd_unit)
-            for delta in deltas
-        ]
-        custos = np.array(custos, dtype=float)
+    deltas = np.linspace(margem_inferior, margem_superior, N_PONTOS_GRAFICO)
+    custos = [
+        funcao_objetivo(float(delta), eta, beta_shape, lh, cf, cp, ci, cd_unit)
+        for delta in deltas
+    ]
+    custos = np.array(custos, dtype=float)
 
     loading_box.empty()
 
