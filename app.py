@@ -255,6 +255,43 @@ st.markdown(
             box-shadow: 0 18px 34px rgba(31, 79, 216, 0.28);
         }
 
+
+
+        .loading-card {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(229, 231, 235, 0.95);
+            border-radius: 22px;
+            padding: 20px 22px;
+            margin: 18px 0;
+            box-shadow: 0 12px 35px rgba(15, 23, 42, 0.07);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .loading-ring {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 4px solid #e5e7eb;
+            border-top-color: #1f4fd8;
+            border-right-color: #02a6a6;
+            animation: spin 0.9s linear infinite;
+            flex: 0 0 auto;
+        }
+
+        .loading-text-main {
+            color: #101828;
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin-bottom: 2px;
+        }
+
+        .loading-text-sub {
+            color: #667085;
+            font-size: 0.90rem;
+        }
+
         .small-note {
             color: #667085;
             font-size: 0.86rem;
@@ -541,7 +578,6 @@ def gerar_grafico(deltas: np.ndarray, custos: np.ndarray, delta_otimo: float, cu
 
     ax.set_xlabel(r"Tempo entre inspeções, $\Delta$")
     ax.set_ylabel("Taxa de custo")
-    ax.set_title("Região próxima ao ponto ótimo")
     ax.grid(True, alpha=0.25)
     fig.tight_layout()
     return fig
@@ -556,48 +592,50 @@ if run_button:
     lower_bound = 0.01
     upper_bound = eta * 4.00
 
-    progress_bar = st.progress(0, text="0%")
-    eval_counter = {"n": 0}
-
-    def objetivo_com_progresso(delta: float) -> float:
-        eval_counter["n"] += 1
-        pct = min(78, int((eval_counter["n"] / MAXITER) * 78))
-        progress_bar.progress(pct, text=f"{pct}%")
-        return funcao_objetivo(delta, eta, beta_shape, lh, cf, cp, ci, cd_unit)
-
-    resultado = minimize_scalar(
-        objetivo_com_progresso,
-        bounds=(lower_bound, upper_bound),
-        method="bounded",
-        options={"xatol": XATOL, "maxiter": MAXITER},
+    loading_box = st.empty()
+    loading_box.markdown(
+        """
+        <div class="loading-card">
+            <div class="loading-ring"></div>
+            <div>
+                <div class="loading-text-main">Otimizando...</div>
+                <div class="loading-text-sub">Aguarde!!! O cálculo está em execução.</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    delta_otimo = float(resultado.x)
-    custo_otimo = float(resultado.fun)
+    with st.spinner("Otimizando... Aguarde!!!"):
+        resultado = minimize_scalar(
+            lambda delta: funcao_objetivo(delta, eta, beta_shape, lh, cf, cp, ci, cd_unit),
+            bounds=(lower_bound, upper_bound),
+            method="bounded",
+            options={"xatol": XATOL, "maxiter": MAXITER},
+        )
 
-    progress_bar.progress(82, text="82%")
+        delta_otimo = float(resultado.x)
+        custo_otimo = float(resultado.fun)
 
-    # Faixa inteligente para o gráfico: em vez de mostrar uma região muito ampla,
-    # o gráfico concentra a visualização no entorno do ótimo encontrado.
-    largura_zoom = max(delta_otimo * 0.70, eta * 0.003, 0.08)
-    margem_inferior = max(lower_bound, delta_otimo - largura_zoom)
-    margem_superior = min(upper_bound, delta_otimo + largura_zoom)
+        # Faixa inteligente para o gráfico: em vez de mostrar uma região muito ampla,
+        # o gráfico concentra a visualização no entorno do ótimo encontrado.
+        largura_zoom = max(delta_otimo * 0.70, eta * 0.003, 0.08)
+        margem_inferior = max(lower_bound, delta_otimo - largura_zoom)
+        margem_superior = min(upper_bound, delta_otimo + largura_zoom)
 
-    if margem_superior - margem_inferior < 0.12:
-        centro = delta_otimo
-        margem_inferior = max(lower_bound, centro - 0.06)
-        margem_superior = min(upper_bound, centro + 0.06)
+        if margem_superior - margem_inferior < 0.12:
+            centro = delta_otimo
+            margem_inferior = max(lower_bound, centro - 0.06)
+            margem_superior = min(upper_bound, centro + 0.06)
 
-    deltas = np.linspace(margem_inferior, margem_superior, N_PONTOS_GRAFICO)
-    custos = []
+        deltas = np.linspace(margem_inferior, margem_superior, N_PONTOS_GRAFICO)
+        custos = [
+            funcao_objetivo(float(delta), eta, beta_shape, lh, cf, cp, ci, cd_unit)
+            for delta in deltas
+        ]
+        custos = np.array(custos, dtype=float)
 
-    for idx, delta in enumerate(deltas, start=1):
-        custos.append(funcao_objetivo(float(delta), eta, beta_shape, lh, cf, cp, ci, cd_unit))
-        pct = 82 + int((idx / N_PONTOS_GRAFICO) * 17)
-        progress_bar.progress(min(pct, 99), text=f"{min(pct, 99)}%")
-
-    custos = np.array(custos, dtype=float)
-    progress_bar.progress(100, text="100%")
+    loading_box.empty()
 
     st.markdown("### Resultados")
     col1, col2 = st.columns(2)
@@ -626,7 +664,6 @@ if run_button:
             unsafe_allow_html=True,
         )
 
-    st.markdown("### Curva da taxa de custo próxima ao ótimo")
     fig = gerar_grafico(deltas, custos, delta_otimo, custo_otimo)
     st.pyplot(fig, use_container_width=True)
 
