@@ -531,8 +531,14 @@ def funcao_objetivo(
 
         prob_falha += p1
         prob_nao_falha += p2
-        custo_falha += (((i - 1) * ci) + cf) * c1_integral
-        custo_nao_falha += ((i * ci) + cp) * c2_integral
+        # Custo correto do ciclo em caso de falha:
+        # custo fixo do evento ponderado pela probabilidade + custo acumulado no estado defeituoso.
+        custo_falha += (((i - 1) * ci) + cf) * p1 + c1_integral
+
+        # Custo correto do ciclo em caso de não falha:
+        # custo de inspeções e intervenção preventiva ponderado pela probabilidade
+        # + custo acumulado no estado defeituoso até a inspeção.
+        custo_nao_falha += ((i * ci) + cp) * p2 + c2_integral
         vida_falha += v1
         vida_nao_falha += v2
 
