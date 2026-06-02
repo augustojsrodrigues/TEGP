@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import streamlit as st
 from scipy.integrate import dblquad, quad
-from scipy.optimize import minimize_scalar
+from scipy.optimize import differential_evolution, minimize_scalar
 
 
 # ============================================================
@@ -382,7 +382,7 @@ st.sidebar.caption("Os valores iniciais foram definidos para gerar um caso-base 
 eta = st.sidebar.number_input(
     "Escala da Weibull, $\\eta$",
     min_value=0.01,
-    value=50.00,
+    value=10.00,
     step=1.00,
     format="%.2f",
 )
@@ -398,7 +398,7 @@ beta_shape = st.sidebar.number_input(
 lh = st.sidebar.number_input(
     "Taxa do delay-time exponencial, $\\lambda_h$",
     min_value=0.01,
-    value=0.10,
+    value=0.20,
     step=0.01,
     format="%.2f",
 )
@@ -415,7 +415,7 @@ cf = st.sidebar.number_input(
 cp = st.sidebar.number_input(
     "Custo preventivo, $c_p$",
     min_value=0.00,
-    value=10.00,
+    value=20.00,
     step=1.00,
     format="%.2f",
 )
@@ -423,7 +423,7 @@ cp = st.sidebar.number_input(
 ci = st.sidebar.number_input(
     "Custo de inspeção, $c_i$",
     min_value=0.00,
-    value=1.00,
+    value=3.00,
     step=0.10,
     format="%.2f",
 )
@@ -431,8 +431,8 @@ ci = st.sidebar.number_input(
 cd_unit = st.sidebar.number_input(
     "Custo do estado defeituoso por unidade de tempo, $c_d$",
     min_value=0.00,
-    value=0.10,
-    step=0.01,
+    value=1.00,
+    step=0.10,
     format="%.2f",
 )
 
@@ -612,15 +612,34 @@ if run_button:
         unsafe_allow_html=True,
     )
 
-    resultado = minimize_scalar(
-        lambda delta: funcao_objetivo(delta, eta, beta_shape, lh, cf, cp, ci, cd_unit),
+    objetivo = lambda delta: funcao_objetivo(
+        float(delta), eta, beta_shape, lh, cf, cp, ci, cd_unit
+    )
+
+    resultado_bounded = minimize_scalar(
+        objetivo,
         bounds=(lower_bound, upper_bound),
         method="bounded",
         options={"xatol": XATOL, "maxiter": MAXITER},
     )
 
-    delta_otimo = float(resultado.x)
-    custo_otimo = float(resultado.fun)
+    resultado_global = differential_evolution(
+        lambda vetor: objetivo(vetor[0]),
+        bounds=[(lower_bound, upper_bound)],
+        maxiter=20,
+        popsize=8,
+        tol=1e-5,
+        polish=True,
+        seed=42,
+        updating="immediate",
+        workers=1,
+    )
+
+    candidatos = [
+        (float(resultado_bounded.x), float(resultado_bounded.fun)),
+        (float(resultado_global.x[0]), float(resultado_global.fun)),
+    ]
+    delta_otimo, custo_otimo = min(candidatos, key=lambda item: item[1])
 
     # Faixa inteligente para o gráfico: em vez de mostrar uma região muito ampla,
     # o gráfico concentra a visualização no entorno do ótimo encontrado.
