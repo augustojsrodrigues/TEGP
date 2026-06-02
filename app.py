@@ -377,7 +377,7 @@ st.markdown(
 # Entradas do usuário
 # ============================================================
 st.sidebar.markdown("### Parâmetros do modelo")
-st.sidebar.caption("Os valores iniciais reproduzem o código-base. Todos podem ser alterados.")
+st.sidebar.caption("Os valores iniciais foram definidos para gerar um caso-base didático e coerente. Todos podem ser alterados.")
 
 eta = st.sidebar.number_input(
     "Escala da Weibull, $\\eta$",
@@ -398,8 +398,8 @@ beta_shape = st.sidebar.number_input(
 lh = st.sidebar.number_input(
     "Taxa do delay-time exponencial, $\\lambda_h$",
     min_value=0.01,
-    value=2.00,
-    step=0.10,
+    value=0.10,
+    step=0.01,
     format="%.2f",
 )
 
@@ -596,7 +596,7 @@ run_button = st.button("Executar otimização", type="primary")
 
 if run_button:
     lower_bound = 0.01
-    upper_bound = eta * 4.00
+    upper_bound = eta * 5.00
 
     loading_box = st.empty()
     loading_box.markdown(
