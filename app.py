@@ -406,7 +406,7 @@ cd_unit = st.sidebar.number_input(
 VALOR_GRANDE = 1000
 XATOL = 0.01
 MAXITER = 60
-N_PONTOS_GRAFICO = 35
+N_PONTOS_GRAFICO = 55
 
 
 @st.cache_data(show_spinner=False)
@@ -514,13 +514,34 @@ def funcao_objetivo(
 
 def gerar_grafico(deltas: np.ndarray, custos: np.ndarray, delta_otimo: float, custo_otimo: float):
     fig, ax = plt.subplots(figsize=(9.5, 5.4))
-    ax.plot(deltas, custos, linewidth=2.3)
-    ax.scatter([delta_otimo], [custo_otimo], s=95, zorder=4)
-    ax.axvline(delta_otimo, linestyle="--", linewidth=1.3)
-    ax.axhline(custo_otimo, linestyle="--", linewidth=1.3)
+
+    mascara = np.isfinite(custos)
+    deltas_validos = deltas[mascara]
+    custos_validos = custos[mascara]
+
+    ax.plot(deltas_validos, custos_validos, linewidth=2.6)
+    ax.scatter([delta_otimo], [custo_otimo], s=115, zorder=4)
+    ax.axvline(delta_otimo, linestyle="--", linewidth=1.3, alpha=0.85)
+    ax.axhline(custo_otimo, linestyle="--", linewidth=1.3, alpha=0.85)
+
+    ax.annotate(
+        r"$\Delta^*$",
+        xy=(delta_otimo, custo_otimo),
+        xytext=(10, 12),
+        textcoords="offset points",
+        fontsize=12,
+        fontweight="bold",
+    )
+
+    if custos_validos.size > 0:
+        y_min = float(np.nanmin(custos_validos))
+        y_max = float(np.nanmax(custos_validos))
+        y_range = max(y_max - y_min, abs(custo_otimo) * 0.08, 1e-6)
+        ax.set_ylim(y_min - 0.08 * y_range, y_max + 0.12 * y_range)
+
     ax.set_xlabel(r"Tempo entre inspeções, $\Delta$")
     ax.set_ylabel("Taxa de custo")
-    ax.set_title("Taxa de custo em função do tempo entre inspeções")
+    ax.set_title("Região próxima ao ponto ótimo")
     ax.grid(True, alpha=0.25)
     fig.tight_layout()
     return fig
@@ -556,12 +577,16 @@ if run_button:
 
     progress_bar.progress(82, text="82%")
 
-    margem_inferior = max(lower_bound, delta_otimo * 0.25)
-    margem_superior = min(upper_bound, max(delta_otimo * 2.75, delta_otimo + 1.00))
+    # Faixa inteligente para o gráfico: em vez de mostrar uma região muito ampla,
+    # o gráfico concentra a visualização no entorno do ótimo encontrado.
+    largura_zoom = max(delta_otimo * 0.70, eta * 0.003, 0.08)
+    margem_inferior = max(lower_bound, delta_otimo - largura_zoom)
+    margem_superior = min(upper_bound, delta_otimo + largura_zoom)
 
-    if margem_superior <= margem_inferior:
-        margem_inferior = lower_bound
-        margem_superior = upper_bound
+    if margem_superior - margem_inferior < 0.12:
+        centro = delta_otimo
+        margem_inferior = max(lower_bound, centro - 0.06)
+        margem_superior = min(upper_bound, centro + 0.06)
 
     deltas = np.linspace(margem_inferior, margem_superior, N_PONTOS_GRAFICO)
     custos = []
@@ -601,7 +626,7 @@ if run_button:
             unsafe_allow_html=True,
         )
 
-    st.markdown("### Curva da taxa de custo")
+    st.markdown("### Curva da taxa de custo próxima ao ótimo")
     fig = gerar_grafico(deltas, custos, delta_otimo, custo_otimo)
     st.pyplot(fig, use_container_width=True)
 
