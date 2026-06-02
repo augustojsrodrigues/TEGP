@@ -565,15 +565,13 @@ if run_button:
     lower_bound = 0.01
     upper_bound = eta * 4.00
 
-    progress_bar = st.progress(0, text="Preparando otimização: 0%")
-    status_placeholder = st.empty()
+    progress_bar = st.progress(0, text="0%")
     eval_counter = {"n": 0}
 
     def objetivo_com_progresso(delta: float) -> float:
         eval_counter["n"] += 1
         pct = min(78, int((eval_counter["n"] / MAXITER) * 78))
-        progress_bar.progress(pct, text=f"Otimizando a variável de decisão Δ: {pct}%")
-        status_placeholder.caption(f"Avaliação {eval_counter['n']} de aproximadamente {MAXITER}.")
+        progress_bar.progress(pct, text=f"{pct}%")
         return funcao_objetivo(delta, eta, beta_shape, lh, cf, cp, ci, cd_unit)
 
     resultado = minimize_scalar(
@@ -586,7 +584,7 @@ if run_button:
     delta_otimo = float(resultado.x)
     custo_otimo = float(resultado.fun)
 
-    progress_bar.progress(82, text="Gerando curva de taxa de custo: 82%")
+    progress_bar.progress(82, text="82%")
 
     margem_inferior = max(lower_bound, delta_otimo * 0.25)
     margem_superior = min(upper_bound, max(delta_otimo * 2.75, delta_otimo + 1.00))
@@ -601,22 +599,21 @@ if run_button:
     for idx, delta in enumerate(deltas, start=1):
         custos.append(funcao_objetivo(float(delta), eta, beta_shape, lh, cf, cp, ci, cd_unit))
         pct = 82 + int((idx / N_PONTOS_GRAFICO) * 17)
-        progress_bar.progress(min(pct, 99), text=f"Gerando gráfico: {min(pct, 99)}%")
+        progress_bar.progress(min(pct, 99), text=f"{min(pct, 99)}%")
 
     custos = np.array(custos, dtype=float)
-    progress_bar.progress(100, text="Cálculo concluído: 100%")
-    status_placeholder.caption("Otimização finalizada.")
+    progress_bar.progress(100, text="100%")
 
     st.markdown("### Resultados")
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
 
     with col1:
         st.markdown(
             f"""
             <div class="metric-card">
-                <div class="metric-label">Variável de decisão ótima, <em>Δ*</em></div>
-                <div class="metric-value">{delta_otimo:.2f}</div>
-                <div class="metric-footnote">Tempo entre inspeções</div>
+                <div class="metric-label">Intervalo entre inspeções:</div>
+                <div class="metric-value"><em>{delta_otimo:.2f}</em></div>
+                <div class="metric-footnote">Variável de decisão ótima, <em>Δ*</em></div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -626,22 +623,9 @@ if run_button:
         st.markdown(
             f"""
             <div class="metric-card">
-                <div class="metric-label">Taxa de custo mínima</div>
-                <div class="metric-value">{custo_otimo:.2f}</div>
-                <div class="metric-footnote">Custo esperado por unidade de tempo</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with col3:
-        status_text = "Convergiu" if resultado.success else "Verificar"
-        st.markdown(
-            f"""
-            <div class="metric-card">
-                <div class="metric-label">Status do otimizador</div>
-                <div class="metric-value">{status_text}</div>
-                <div class="metric-footnote">Avaliações: {resultado.nfev}</div>
+                <div class="metric-label">Taxa de custo:</div>
+                <div class="metric-value"><em>{custo_otimo:.2f}</em></div>
+                <div class="metric-footnote">Valor mínimo da função objetivo</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -650,16 +634,6 @@ if run_button:
     st.markdown("### Curva da taxa de custo")
     fig = gerar_grafico(deltas, custos, delta_otimo, custo_otimo)
     st.pyplot(fig, use_container_width=True)
-
-    with st.expander("Ver detalhes numéricos"):
-        st.write(
-            {
-                "Delta_otimo": round(delta_otimo, 2),
-                "Taxa_de_custo_minima": round(custo_otimo, 2),
-                "Convergiu": bool(resultado.success),
-                "Avaliacoes_da_funcao": int(resultado.nfev),
-            }
-        )
 
 else:
     st.info("Ajuste os parâmetros na barra lateral e clique em **Executar otimização** para obter os resultados.")
